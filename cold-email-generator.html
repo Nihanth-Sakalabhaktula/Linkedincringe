@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cold Email Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1512;
+    --surface: #16201B;
+    --surface-2: #1D2A23;
+    --ink: #EEF3EF;
+    --ink-soft: #93A79C;
+    --teal: #3FD8A3;
+    --amber: #FFC55C;
+    --border: #263429;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #F5F7F4; --surface: #FFFFFF; --surface-2: #EDF2EE;
+      --ink: #10160F; --ink-soft: #5B6B60; --border: #DCE4DD;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F5F7F4; --surface: #FFFFFF; --surface-2: #EDF2EE;
+    --ink: #10160F; --ink-soft: #5B6B60; --border: #DCE4DD;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Space Grotesk', sans-serif;
+    padding: 28px 16px calc(40px + env(safe-area-inset-bottom, 0px));
+    padding-top: calc(28px + env(safe-area-inset-top, 0px));
+    min-height: 100vh;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 24px; }
+  .title {
+    font-size: clamp(26px, 6vw, 36px); font-weight: 700; margin: 0 0 6px;
+    background: linear-gradient(90deg, var(--teal), var(--amber));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .subtitle { color: var(--ink-soft); font-size: 14px; margin: 0; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  label { display: block; font-size: 12.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  textarea, input {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 1.6;
+    padding: 12px; resize: vertical;
+  }
+  textarea:focus, input:focus { outline: 2px solid var(--teal); outline-offset: -1px; }
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .hint { font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+  .sample-btn {
+    background: none; border: 1px dashed var(--border); color: var(--ink-soft);
+    font-family: inherit; font-size: 12px; padding: 5px 11px; border-radius: 20px; cursor: pointer; margin-top: 8px;
+  }
+  .sample-btn:hover { border-color: var(--ink-soft); color: var(--ink); }
+
+  .gen-btn {
+    width: 100%; background: var(--teal); color: #05170F; border: none; border-radius: 10px;
+    padding: 14px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px;
+    cursor: pointer; transition: transform 0.08s ease;
+  }
+  .gen-btn:active { transform: scale(0.98); }
+  .gen-btn:disabled { opacity: 0.6; cursor: default; }
+
+  .output { display: none; }
+  .output.show { display: block; }
+  .output-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .output-head span { font-size: 12.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+  .copy-btn {
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--ink);
+    font-family: inherit; font-size: 12px; padding: 5px 12px; border-radius: 16px; cursor: pointer;
+  }
+  .copy-btn:hover { border-color: var(--teal); }
+  .email-body {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 1.7;
+    white-space: pre-wrap;
+  }
+  .spinner-note { text-align: center; color: var(--ink-soft); font-size: 13px; padding: 10px 0; display: none; }
+  .spinner-note.show { display: block; }
+  footer { text-align: center; color: var(--ink-soft); font-size: 11.5px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="title">Cold Email Generator</h1>
+    <p class="subtitle">Paste a job post + your portfolio bullets → get a personalized outreach email</p>
+  </header>
+
+  <div class="card">
+    <div class="field">
+      <label for="jobPost">Job posting / target role</label>
+      <textarea id="jobPost" rows="6" placeholder="Paste the job description or role you're reaching out about..."></textarea>
+      <button class="sample-btn" id="sampleJobBtn">try a sample job post →</button>
+    </div>
+    <div class="field">
+      <label for="portfolio">Your portfolio (one project per line)</label>
+      <textarea id="portfolio" rows="4" placeholder="e.g. Built a GenAI email automation tool using LangChain + Llama 3.1&#10;Built a full-stack scheduling app with React, Express, PostgreSQL"></textarea>
+      <div class="hint">The generator picks the most relevant one(s) to reference — like semantic retrieval, minus the vector database.</div>
+    </div>
+    <div class="field">
+      <label for="senderName">Your name</label>
+      <input type="text" id="senderName" placeholder="e.g. Nihanth Sakalabhaktula">
+    </div>
+    <button class="gen-btn" id="genBtn">Generate Email</button>
+  </div>
+
+  <div class="spinner-note" id="spinnerNote">Drafting your email...</div>
+
+  <div class="card output" id="outputCard">
+    <div class="output-head">
+      <span>Generated email</span>
+      <button class="copy-btn" id="copyBtn">Copy</button>
+    </div>
+    <div class="email-body" id="emailBody"></div>
+  </div>
+
+  <footer>Generated live via Claude · Nothing is stored</footer>
+</div>
+
+<script>
+(function() {
+  var sampleFn = null;
+  claude.use("sample").then(function(s) { sampleFn = s; });
+
+  var SAMPLE_JOB = "We're hiring a Software Engineering Intern to build AI-powered features connecting applications to LLMs, RAG pipelines, and AI agents. You'll work across the application layer: APIs, databases, integrations. Looking for strong programming fundamentals and genuine hands-on AI project experience.";
+
+  document.getElementById("sampleJobBtn").addEventListener("click", function() {
+    document.getElementById("jobPost").value = SAMPLE_JOB;
+  });
+
+  document.getElementById("copyBtn").addEventListener("click", function() {
+    var text = document.getElementById("emailBody").textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() {
+        var btn = document.getElementById("copyBtn");
+        var orig = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(function() { btn.textContent = orig; }, 1500);
+      });
+    }
+  });
+
+  document.getElementById("genBtn").addEventListener("click", async function() {
+    var jobPost = document.getElementById("jobPost").value.trim();
+    var portfolio = document.getElementById("portfolio").value.trim();
+    var senderName = document.getElementById("senderName").value.trim() || "the sender";
+    var btn = document.getElementById("genBtn");
+    var spinner = document.getElementById("spinnerNote");
+    var outputCard = document.getElementById("outputCard");
+
+    if (!jobPost) {
+      document.getElementById("jobPost").focus();
+      return;
+    }
+
+    btn.disabled = true;
+    spinner.classList.add("show");
+    outputCard.classList.remove("show");
+
+    var prompt = "You are an assistant that writes short, genuine-sounding cold outreach emails for job applications. " +
+      "Write a concise cold email (under 150 words) from " + senderName + " to a hiring team, based on this job posting:\n\n" +
+      jobPost + "\n\n" +
+      (portfolio ? "Here are the sender's portfolio projects (pick the 1-2 most relevant to reference specifically, don't list them all):\n" + portfolio + "\n\n" : "") +
+      "Tone: confident but not arrogant, specific rather than generic, no corporate buzzwords like 'synergy' or 'passionate about'. " +
+      "Output only the email body text, no subject line, no explanation.";
+
+    try {
+      if (!sampleFn) sampleFn = await claude.use("sample");
+      if (!sampleFn) {
+        document.getElementById("emailBody").textContent = "AI isn't available in this preview.";
+        outputCard.classList.add("show");
+      } else {
+        var result = await sampleFn(prompt, { modelTier: "default" });
+        var text = (result && result.text) ? result.text.trim() : "Couldn't generate an email — try again.";
+        document.getElementById("emailBody").textContent = text;
+        outputCard.classList.add("show");
+      }
+    } catch (e) {
+      document.getElementById("emailBody").textContent = "Error: " + (e && e.message ? e.message : "something went wrong");
+      outputCard.classList.add("show");
+    }
+
+    btn.disabled = false;
+    spinner.classList.remove("show");
+  });
+})();
+</script>
+</body>
+</html>

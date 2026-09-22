@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LinkedIn Cringe-o-Meter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F1115;
+    --surface: #181B21;
+    --surface-2: #1F232B;
+    --ink: #F2F0EA;
+    --ink-soft: #9AA0AC;
+    --green: #39FF88;
+    --pink: #FF4D6D;
+    --amber: #FFD166;
+    --border: #2A2F38;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #F5F3EE;
+      --surface: #FFFFFF;
+      --surface-2: #EFEDE6;
+      --ink: #14161A;
+      --ink-soft: #6B7280;
+      --border: #E1DED4;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F5F3EE;
+    --surface: #FFFFFF;
+    --surface-2: #EFEDE6;
+    --ink: #14161A;
+    --ink-soft: #6B7280;
+    --border: #E1DED4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Space Grotesk', sans-serif;
+    padding: 32px 16px calc(48px + env(safe-area-inset-bottom, 0px));
+    padding-top: calc(32px + env(safe-area-inset-top, 0px));
+    min-height: 100vh;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 28px; }
+  .title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(28px, 6vw, 42px);
+    line-height: 1.05;
+    margin: 0 0 8px;
+    background: linear-gradient(90deg, var(--green), var(--amber) 50%, var(--pink));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle { color: var(--ink-soft); font-size: 15px; margin: 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 160px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 14px;
+    resize: vertical;
+  }
+  textarea:focus { outline: 2px solid var(--green); outline-offset: -1px; }
+  .sample-btn {
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .sample-btn:hover { border-color: var(--ink-soft); color: var(--ink); }
+
+  .rate-btn {
+    width: 100%;
+    margin-top: 16px;
+    background: var(--green);
+    color: #06170D;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: transform 0.08s ease;
+  }
+  .rate-btn:active { transform: scale(0.98); }
+
+  .result { display: none; }
+  .result.show { display: block; }
+
+  .score-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .score-num {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 56px;
+    line-height: 1;
+  }
+  .score-max { color: var(--ink-soft); font-size: 18px; }
+  .verdict {
+    text-align: center;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  .meter-track {
+    height: 14px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .meter-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--green), var(--amber), var(--pink));
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+  .meter-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 20px;
+  }
+
+  .flagged-title {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .annotated {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13.5px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  mark {
+    background: var(--pink);
+    color: #2A0410;
+    padding: 1px 3px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .empty-note {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 13px;
+    padding: 20px 0 4px;
+  }
+  footer {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 12px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="title">LinkedIn Cringe-o-Meter</h1>
+    <p class="subtitle">Paste a post. We'll tell you how humbled you actually sound.</p>
+  </header>
+
+  <div class="card">
+    <textarea id="postInput" placeholder="Paste your (or someone else's) LinkedIn post here..."></textarea>
+    <button class="sample-btn" id="sampleBtn">try a sample post →</button>
+    <button class="rate-btn" id="rateBtn">RATE MY CRINGE</button>
+  </div>
+
+  <div class="card result" id="resultCard">
+    <div class="score-row">
+      <span class="score-num" id="scoreNum">0</span>
+      <span class="score-max">/ 100</span>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+    <div class="meter-labels"><span>based</span><span>mid</span><span>unhinged cringe</span></div>
+
+    <div id="flaggedSection">
+      <div class="flagged-title">Flagged in your post</div>
+      <div class="annotated" id="annotated"></div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div>
+
+  <footer>No AI, no data leaves your browser. Just vibes and regex.</footer>
+</div>
+
+<script>
+(function() {
+  var PHRASES = [
+    { re: /\bhumbled\b/gi, label: "humbled", weight: 8 },
+    { re: /\bgrateful\b/gi, label: "grateful", weight: 6 },
+    { re: /\bblessed\b/gi, label: "blessed", weight: 7 },
+    { re: /\bhonor(?:ed|ed to)\b/gi, label: "honored", weight: 6 },
+    { re: /thrilled to (?:announce|share)/gi, label: "thrilled to announce", weight: 9 },
+    { re: /excited to (?:share|announce)/gi, label: "excited to share", weight: 6 },
+    { re: /delighted to/gi, label: "delighted to", weight: 6 },
+    { re: /\bjourney\b/gi, label: "journey", weight: 7 },
+    { re: /game[- ]changer/gi, label: "game-changer", weight: 8 },
+    { re: /\bsynerg(?:y|ies)\b/gi, label: "synergy", weight: 9 },
+    { re: /circle back/gi, label: "circle back", weight: 8 },
+    { re: /move the needle/gi, label: "move the needle", weight: 8 },
+    { re: /growth mindset/gi, label: "growth mindset", weight: 7 },
+    { re: /\bdisrupt(?:ing|ive|ion)?\b/gi, label: "disrupt(ive)", weight: 6 },
+    { re: /\bpassionate\b/gi, label: "passionate", weight: 5 },
+    { re: /thought leader(?:ship)?/gi, label: "thought leader", weight: 9 },
+    { re: /\bhustle\b/gi, label: "hustle", weight: 6 },
+    { re: /\bgrind(?:set)?\b/gi, label: "grind(set)", weight: 6 },
+    { re: /\b10x\b/gi, label: "10x", weight: 6 },
+    { re: /\bunicorn\b/gi, label: "unicorn", weight: 6 },
+    { re: /\becosystem\b/gi, label: "ecosystem", weight: 5 },
+    { re: /\bleverage(?:d|s|ing)?\b/gi, label: "leverage", weight: 5 },
+    { re: /actionable insights?/gi, label: "actionable insights", weight: 7 },
+    { re: /low[- ]hanging fruit/gi, label: "low-hanging fruit", weight: 7 },
+    { re: /\bdeep dive\b/gi, label: "deep dive", weight: 6 },
+    { re: /double[- ]click(?:ing)? on/gi, label: "double-clicking on", weight: 9 },
+    { re: /\bbandwidth\b/gi, label: "bandwidth", weight: 5 },
+    { re: /touch base/gi, label: "touch base", weight: 6 },
+    { re: /core values?/gi, label: "core value(s)", weight: 5 },
+    { re: /level[- ]?up(?:ped|ping)?/gi, label: "level up", weight: 5 },
+    { re: /\bauthentic(?:ity)?\b/gi, label: "authentic", weight: 5 },
+    { re: /\bnetwork(?:ing)?\b.{0,15}\bcoffee chat/gi, label: "networking / coffee chat", weight: 6 },
+    { re: /I('m| am) (?:so |incredibly )?(?:proud|excited|honored)/gi, label: "I'm so [emotion]", weight: 5 },
+    { re: /agree\?\s*$/gim, label: "\"agree?\" bait ending", weight: 8 },
+    { re: /what (?:do you think|are your thoughts)\?/gi, label: "engagement-bait question", weight: 6 },
+  ];
+
+  var EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu;
+
+  function analyze(text) {
+    var flags = {}; // label -> count
+    var matchSpans = []; // {start, end}
+
+    PHRASES.forEach(function(p) {
+      var m;
+      p.re.lastIndex = 0;
+      while ((m = p.re.exec(text)) !== null) {
+        flags[p.label] = (flags[p.label] || 0) + 1;
+        matchSpans.push({ start: m.index, end: m.index + m[0].length, weight: p.weight });
+        if (m.index === p.re.lastIndex) p.re.lastIndex++;
+      }
+    });
+
+    var emojiMatches = text.match(EMOJI_RE) || [];
+    var emojiCount = emojiMatches.length;
+
+    var lines = text.split("\n").filter(function(l) { return l.trim().length > 0; });
+    var shortLineCount = lines.filter(function(l) { return l.trim().split(/\s+/).length <= 6; }).length;
+    var oneSentencePerLineScore = lines.length > 4 && (shortLineCount / lines.length) > 0.5 ? 12 : 0;
+
+    var weightSum = matchSpans.reduce(function(s, m) { return s + m.weight; }, 0);
+    var emojiScore = Math.min(emojiCount * 2.5, 20);
+
+    var raw = weightSum + emojiScore + oneSentencePerLineScore;
+    var score = Math.round(Math.min(100, raw));
+
+    return { score: score, flags: flags, matchSpans: matchSpans, emojiCount: emojiCount, oneSentencePerLine: oneSentencePerLineScore > 0 };
+  }
+
+  function annotate(text, spans) {
+    if (spans.length === 0) {
+      return escapeHtml(text);
+    }
+    spans.sort(function(a, b) { return a.start - b.start; });
+    // merge overlaps
+    var merged = [];
+    spans.forEach(function(s) {
+      var last = merged[merged.length - 1];
+      if (last && s.start <= last.end) {
+        last.end = Math.max(last.end, s.end);
+      } else {
+        merged.push({ start: s.start, end: s.end });
+      }
+    });
+    var out = "";
+    var cursor = 0;
+    merged.forEach(function(s) {
+      out += escapeHtml(text.slice(cursor, s.start));
+      out += "<mark>" + escapeHtml(text.slice(s.start, s.end)) + "</mark>";
+      cursor = s.end;
+    });
+    out += escapeHtml(text.slice(cursor));
+    return out;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function(c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+
+  function verdictFor(score) {
+    if (score < 15) return "Certified based. Barely any corporate seasoning.";
+    if (score < 35) return "Mild seasoning. A little humbled, mostly harmless.";
+    if (score < 55) return "Solidly mid. You've absorbed the algorithm's teachings.";
+    if (score < 75) return "Heavy cringe. This reads like it was written for engagement, not people.";
+    if (score < 90) return "Certified LinkedIn Brainrot. Gary Vee is proud of you.";
+    return "Unhinged. This post achieved corporate main-character syndrome.";
+  }
+
+  var SAMPLE = "Humbled and grateful to share that after an incredible journey, I'm thrilled to announce I've been promoted! 🚀🙏\n\nThis wouldn't have been possible without leveraging synergies across teams and always maintaining a growth mindset.\n\nBig shoutout to my network for the endless support. Remember: hustle beats talent when talent doesn't hustle. 💯\n\nWhat do you think? Agree?";
+
+  document.getElementById("sampleBtn").addEventListener("click", function() {
+    document.getElementById("postInput").value = SAMPLE;
+  });
+
+  document.getElementById("rateBtn").addEventListener("click", function() {
+    var text = document.getElementById("postInput").value.trim();
+    var resultCard = document.getElementById("resultCard");
+    if (!text) {
+      resultCard.classList.remove("show");
+      return;
+    }
+    var result = analyze(text);
+    document.getElementById("scoreNum").textContent = result.score;
+    document.getElementById("verdict").textContent = verdictFor(result.score);
+    document.getElementById("meterFill").style.width = result.score + "%";
+    document.getElementById("annotated").innerHTML = annotate(text, result.matchSpans);
+
+    var chipsEl = document.getElementById("chips");
+    var labels = Object.keys(result.flags);
+    if (result.emojiCount > 0) labels.push(result.emojiCount + " emoji" + (result.emojiCount > 1 ? "s" : ""));
+    if (result.oneSentencePerLine) labels.push("one-sentence-per-line formatting");
+
+    if (labels.length === 0) {
+      chipsEl.innerHTML = "";
+      document.getElementById("flaggedSection").querySelector(".flagged-title").textContent = "Nothing flagged — suspiciously clean post.";
+      document.getElementById("annotated").style.display = "none";
+    } else {
+      document.getElementById("flaggedSection").querySelector(".flagged-title").textContent = "Flagged in your post";
+      document.getElementById("annotated").style.display = "block";
+      chipsEl.innerHTML = labels.map(function(l) {
+        return '<span class="chip">' + escapeHtml(l) + '</span>';
+      }).join("");
+    }
+
+    resultCard.classList.add("show");
+  });
+})();
+</script>
+</body>
+</html>
